@@ -1,48 +1,107 @@
 const { pool } = require('../config/db');
 const { ApiError } = require('../middleware/errorHandler');
 
-// GET /api/products?category=pesticide&search=neem
+// GET /api/products
 async function listProducts(req, res) {
-    const { category, search } = req.query;
-    const clauses = ['is_active = TRUE'];
-    const params = [];
+    try {
+        const { category, search } = req.query;
 
-    if (category && category !== 'all') {
-        params.push(category);
-        clauses.push(`category = $${params.length}`);
-    }
-    if (search) {
-        params.push(`%${search}%`);
-        clauses.push(`(name ILIKE $${params.length} OR description ILIKE $${params.length})`);
-    }
+        const clauses = ['is_active = TRUE'];
+        const params = [];
 
-    const query = `
-        SELECT product_id AS id, name, description, price, category, icon, badge, stock
-        FROM products
-        WHERE ${clauses.join(' AND ')}
-        ORDER BY product_id
-    `;
-    const result = await pool.query(query, params);
-    res.json({ success: true, data: result.rows });
+        if (category && category !== 'all') {
+            params.push(category);
+            clauses.push(`category = $${params.length}`);
+        }
+
+        if (search) {
+            params.push(`%${search}%`);
+            clauses.push(
+                `(name ILIKE $${params.length} OR description ILIKE $${params.length})`
+            );
+        }
+
+        const sql = `
+            SELECT
+                product_id AS id,
+                name,
+                description,
+                price,
+                category,
+                icon,
+                badge,
+                stock
+            FROM products
+            WHERE ${clauses.join(' AND ')}
+            ORDER BY product_id;
+        `;
+
+        console.log("========== PRODUCTS QUERY ==========");
+        console.log(sql);
+        console.log("PARAMS:", params);
+
+        const result = await pool.query(sql, params);
+
+        console.log("ROWS RETURNED:", result.rows.length);
+
+        res.json({
+            success: true,
+            data: result.rows,
+        });
+
+    } catch (err) {
+        console.error("PRODUCTS ERROR:");
+        console.error(err);
+
+        throw err;
+    }
 }
 
 // GET /api/products/:id
 async function getProduct(req, res) {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {
-        throw new ApiError(400, 'Product id must be a positive integer');
-    }
+    try {
+        const id = Number(req.params.id);
 
-    const result = await pool.query(
-        `SELECT product_id AS id, name, description, price, category, icon, badge, stock
-         FROM products WHERE product_id = $1 AND is_active = TRUE`,
-        [id]
-    );
+        if (!Number.isInteger(id) || id <= 0) {
+            throw new ApiError(400, 'Product id must be a positive integer');
+        }
 
-    if (result.rows.length === 0) {
-        throw new ApiError(404, 'Product not found');
+        const result = await pool.query(
+            `
+            SELECT
+                product_id AS id,
+                name,
+                description,
+                price,
+                category,
+                icon,
+                badge,
+                stock
+            FROM products
+            WHERE product_id = $1
+            AND is_active = TRUE
+            `,
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            throw new ApiError(404, 'Product not found');
+        }
+
+        res.json({
+            success: true,
+            data: result.rows[0],
+        });
+
+    } catch (err) {
+        console.error("GET PRODUCT ERROR:");
+        console.error(err);
+
+        throw err;
     }
-    res.json({ success: true, data: result.rows[0] });
 }
 
-module.exports = { listProducts, getProduct };
+module.exports = {
+    listProducts,
+    getProduct,
+};

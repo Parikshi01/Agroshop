@@ -43,36 +43,31 @@ function buildApp() {
     // DATABASE DEBUG ROUTE
     // ===========================
     app.get('/debug-db', async (req, res) => {
-        try {
-            const db = await pool.query(`
-                SELECT
-                    current_database() AS database,
-                    current_user AS "user",
-                    inet_server_addr() AS host,
-                    inet_server_port() AS port
-            `);
+    try {
+        const db = await pool.query(`
+            SELECT
+                current_database() AS database,
+                current_schema() AS schema,
+                current_user AS user
+        `);
 
-            const tables = await pool.query(`
-                SELECT table_schema, table_name
-                FROM information_schema.tables
-                WHERE table_schema = 'public'
-                ORDER BY table_name;
-            `);
+        const tables = await pool.query(`
+            SELECT table_schema, table_name
+            FROM information_schema.tables
+            ORDER BY table_schema, table_name;
+        `);
 
-            res.json({
-                success: true,
-                database: db.rows[0],
-                tables: tables.rows,
-            });
-        } catch (err) {
-            console.error(err);
+        res.json({
+            info: db.rows[0],
+            tables: tables.rows
+        });
 
-            res.status(500).json({
-                success: false,
-                error: err.message,
-            });
-        }
-    });
+    } catch (err) {
+        res.status(500).json({
+            error: err.message
+        });
+    }
+});
 
     // ===========================
 

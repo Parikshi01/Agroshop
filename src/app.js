@@ -44,13 +44,19 @@ function buildApp() {
     // ===========================
     app.get('/debug-db', async (req, res) => {
         try {
-            const db = await pool.query('SELECT current_database()');
+            const db = await pool.query(`
+                SELECT
+                    current_database() AS database,
+                    current_user AS "user",
+                    inet_server_addr() AS host,
+                    inet_server_port() AS port
+            `);
 
             const tables = await pool.query(`
-                SELECT table_name
+                SELECT table_schema, table_name
                 FROM information_schema.tables
-                WHERE table_schema='public'
-                ORDER BY table_name
+                WHERE table_schema = 'public'
+                ORDER BY table_name;
             `);
 
             res.json({

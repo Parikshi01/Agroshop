@@ -60,16 +60,18 @@ function buildApp() {
         `);
 
         res.json({
+            success: true,
             database: db.rows[0],
-            tables: tables.rows
+            tables: tables.rows,
         });
 
     } catch (err) {
+        console.error(err);
 
-        res.json({
-            error: err.message
+        res.status(500).json({
+            success: false,
+            error: err.message,
         });
-
     }
 });
 

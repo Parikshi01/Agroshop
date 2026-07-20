@@ -42,30 +42,34 @@ function buildApp() {
     // ===========================
     // DATABASE DEBUG ROUTE
     // ===========================
-    app.get('/debug-db', async (req, res) => {
+   app.get('/debug-db', async (req, res) => {
     try {
+
         const db = await pool.query(`
             SELECT
-                current_database() AS database,
-                current_schema() AS schema,
-                current_user AS user
+                current_database(),
+                current_user,
+                inet_server_addr(),
+                inet_server_port()
         `);
 
         const tables = await pool.query(`
             SELECT table_schema, table_name
             FROM information_schema.tables
-            ORDER BY table_schema, table_name;
+            ORDER BY table_schema, table_name
         `);
 
         res.json({
-            info: db.rows[0],
+            database: db.rows[0],
             tables: tables.rows
         });
 
     } catch (err) {
-        res.status(500).json({
+
+        res.json({
             error: err.message
         });
+
     }
 });
 
